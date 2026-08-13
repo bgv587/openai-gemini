@@ -2,5 +2,5 @@ node_modules
 .netlify
 .vercel
 .wrangler
-summary.py
-result.txt
+
+进度.md
