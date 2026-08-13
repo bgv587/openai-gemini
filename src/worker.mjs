@@ -586,7 +586,7 @@ const transformOpenApiSchemaToGemini = (schemaNode, rootSchema, visited = new Se
   const unsupportedKeys = [
     'title', '$schema', '$ref', 'strict', 'exclusiveMaximum',
     'exclusiveMinimum', 'additionalProperties', 'oneOf', 'default', // default 已处理，可以删除了
-    '$defs'
+    '$defs', 'contentEncoding', 'contentMediaType'
   ];
   unsupportedKeys.forEach(key => delete schemaNode[key]);
 
@@ -994,10 +994,10 @@ const transformMessages = async (messages, model) => {
         continue;
       case "tool":
         let { role: r, parts: p } = contents[contents.length - 1] ?? {};
-        if (r !== "function") {
+        if (r !== "user") {
           const calls = p?.calls;
           p = []; p.calls = calls;
-          contents.push({ role: "function", parts: p });
+          contents.push({ role: "user", parts: p });
         }
         transformFnResponse(item, p);
         continue;

@@ -49,13 +49,28 @@ Gemini API 是[免费的](https://ai.google.dev/pricing "有使用限制！")，
     _Edge functions_ [限制](https://docs.netlify.com/edge-functions/limits/)
 
 
-### 部署到 Cloudflare
+### 通过 GitHub 自动部署到 Cloudflare Workers（推荐）
 
-[![部署到 Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Komorebi-yaodong/openai-gemini)
-- 或者，手动将源代码文件的内容粘贴到 https://workers.cloudflare.com/playground 并点击 `部署`。
-- 或者，使用 [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) 部署： `wrangler deploy`
-- 在本地运行： `wrangler dev`
-- _Worker_ 的[限制](https://developers.cloudflare.com/workers/platform/limits/#worker-limits)
+使用 Cloudflare **Workers Builds / Git 集成**。不要再将 `src/worker.mjs` 或 Wrangler 打包后的 `worker.js` 粘贴到 Dashboard：构建过程会读取 `wrangler.toml` 并应用 `nodejs_compat`，从而提供所需的 `node:buffer` 兼容性。
+
+1. 将本仓库推送到 GitHub（可使用私有仓库）；**不要提交 Gemini API Key**。
+2. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)，进入 **Workers & Pages** → **Create application** → **Workers** → **Import a repository**。
+3. 连接 GitHub，选择本仓库及生产分支（通常为 `main`）。
+4. 在构建设置中填写：
+   - **Root directory（根目录）**：留空（仓库根目录）
+   - **Build command（构建命令）**：`pnpm install --frozen-lockfile`
+   - **Deploy command（部署命令）**：`pnpm deploy`
+   - 若构建镜像未提供 pnpm，将构建命令改为：`corepack enable && pnpm install --frozen-lockfile`。
+5. 设置所需的 Worker 名称。为保证配置可复现，也应在推送前同步更新 `wrangler.toml` 中的 `name`。
+6. 点击 **Save and Deploy**。之后每次推送到生产分支，Cloudflare 都会自动构建和部署。
+
+> 本仓库保留了旧的 GitHub Actions 工作流 `.github/workflows/cf-deploy.yml`，它要求 `CF_API_TOKEN` 和 `CF_ACCOUNT_ID`。使用 Workers Builds 时，请在 GitHub Actions 中禁用该工作流（或在单独确认的提交中删除它），避免一次推送触发两套相互竞争的部署。
+
+部署后的 OpenAI API Base URL 为：`https://<worker>.<subdomain>.workers.dev/v1`。Gemini API Key 只应由调用客户端通过 `Authorization: Bearer <GEMINI_API_KEY>` 请求头传入；不要将其写入 GitHub、`wrangler.toml` 或 Cloudflare Worker Variables。
+
+本地调试 Worker 使用 `pnpm dev:worker`。`pnpm deploy` 是手工生产部署命令；连接 Workers Builds 后通常无需在本地执行。
+
+更多信息可参考 [Wrangler 文档](https://developers.cloudflare.com/workers/wrangler/) 与 _[Worker 限制](https://developers.cloudflare.com/workers/platform/limits/#worker-limits)_。
 
 
 ### 部署到 Deno

@@ -57,15 +57,28 @@ which is necessary for continuous integration (CI).
     _Edge functions_ [limits](https://docs.netlify.com/edge-functions/limits/)
 
 
-### Deploy to Cloudflare
+### Deploy to Cloudflare Workers from GitHub (recommended)
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Komorebi-yaodong/openai-gemini)
-- Alternatively can be deployed manually pasting content of the source mjs file
-  to https://workers.cloudflare.com/playground (see there `Deploy` button).
-- Alternatively can be deployed with [cli](https://developers.cloudflare.com/workers/wrangler/):
-  `wrangler deploy`
-- Serve locally: `wrangler dev`
-- _Worker_ [limits](https://developers.cloudflare.com/workers/platform/limits/#worker-limits)
+Use Cloudflare **Workers Builds / Git integration**. Do not paste `src/worker.mjs` or a bundled `worker.js` into the Dashboard: Wrangler reads `wrangler.toml` and applies `nodejs_compat` during the build, which provides the required `node:buffer` compatibility.
+
+1. Push this repository to GitHub (use a private repository if preferred). Do **not** commit a Gemini API key.
+2. In [Cloudflare Dashboard](https://dash.cloudflare.com/), open **Workers & Pages** → **Create application** → **Workers** → **Import a repository**.
+3. Connect GitHub, select this repository, and choose your production branch (normally `main`).
+4. Use these build settings:
+   - **Root directory**: leave empty (repository root)
+   - **Build command**: `pnpm install --frozen-lockfile`
+   - **Deploy command**: `pnpm deploy`
+   - If pnpm is unavailable in the build image, use `corepack enable && pnpm install --frozen-lockfile` as the build command.
+5. Set the desired Worker name. To keep it reproducible, also update `name` in `wrangler.toml` before pushing.
+6. Select **Save and Deploy**. Every later push to the production branch triggers a build and deployment.
+
+> This repository contains `.github/workflows/cf-deploy.yml`, an older GitHub Actions deployment workflow that expects `CF_API_TOKEN` and `CF_ACCOUNT_ID`. When using Workers Builds, disable that workflow in GitHub Actions (or remove it in a separate, deliberate commit) so a push does not create two competing deployments.
+
+Use the deployed endpoint as `https://<worker>.<subdomain>.workers.dev/v1`. Supply your Gemini API key only as the client request header `Authorization: Bearer <GEMINI_API_KEY>`; do not store it in GitHub, `wrangler.toml`, or Cloudflare Worker Variables.
+
+For local Worker development run `pnpm dev:worker`. `pnpm deploy` is a manual production deployment command and is not needed after Workers Builds is connected.
+
+See [Wrangler documentation](https://developers.cloudflare.com/workers/wrangler/) and _[Worker limits](https://developers.cloudflare.com/workers/platform/limits/#worker-limits)_.
 
 
 ### Deploy to Deno
